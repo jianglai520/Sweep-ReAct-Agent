@@ -24,7 +24,7 @@ class EmbeddingsModelFactory(BaseModelFactory):
         return OllamaEmbeddings(model = rag_conf["embedding_model_name"])
 
 chat_model = ChatModelFactory().generator()
-embed_model = EmbeddingsModelFactory.generator()
+embed_model = EmbeddingsModelFactory().generator()
 
 # 测试
 if __name__ == "__main__":
