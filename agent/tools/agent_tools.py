@@ -107,9 +107,9 @@ def generate_external_data() -> None:
             ...
         }
 
-    文件路径由 ``agent_conf["external_data_path"]`` 提供，并通过
-    ``get_abs_path`` 转为绝对路径。CSV 第一行视为表头，其余每行
-    按列顺序解析为 ``user_id, 特征, 效率, 耗材, 对比, time``。
+    文件路径由 agent_conf["external_data_path"]提供，并通过
+    get_abs_path 转为绝对路径。CSV 第一行视为表头，其余每行
+    按列顺序解析为 user_id, 特征, 效率, 耗材, 对比, time。
 
     Raises:
         FileNotFoundError: 当配置的外部数据文件不存在时抛出。
