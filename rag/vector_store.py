@@ -18,7 +18,9 @@ class VectorStoreService:
         self.vector_store = Chroma(
             collection_name = chroma_conf["collection_name"],
             embedding_function = embed_model,
-            persist_directory = chroma_conf["persist_directory"]
+            # Chroma 会把相对路径按进程 CWD 解析，这里统一转成基于工程根的绝对路径，
+            # 避免在不同目录启动时生成多个 chroma_db
+            persist_directory = get_abs_path(chroma_conf["persist_directory"])
         )
 
         self.spliter = RecursiveCharacterTextSplitter(
@@ -35,15 +37,39 @@ class VectorStoreService:
         """
         return self.vector_store.as_retriever(search_kwargs = {"k": chroma_conf["k"]})
 
+    def _vector_count(self) -> int:
+        """返回当前集合内的向量条数。
+
+        Notes:
+            langchain_chroma 未暴露计数接口，这里直接调用底层 chromadb 集合的 count()。
+        """
+        return self.vector_store._collection.count()
+
+    def _md5_store_has_entries(self) -> bool:
+        """判断 MD5 清单文件是否存在且至少有一条有效记录。"""
+        md5_store_path = get_abs_path(chroma_conf["md5_hex_store"])
+        if not os.path.exists(md5_store_path):
+            return False
+
+        with open(md5_store_path, "r", encoding = "utf-8") as f:
+            return any(line.strip() for line in f)
+
     def load_document(self):
         """
         从数据文件夹内读取数据文件，转为向量存入向量库。
 
         核心特性：
           - MD5 去重：已处理过的文件跳过（增量入库）
+          - 清单自愈：向量库为空但 MD5 清单已有记录时，判定清单失效并清空后重新入库
           - 文件级容错：单个文件失败不中断整批
           - 空内容防护：加载空 / 分片空都跳过，避免写入无效数据
         """
+        # MD5 清单只对配套的向量库有效：库被删除或重建后，旧记录会让所有文件被跳过，
+        # 这里先校验两者是否配套，不配套就清空清单，避免“删库不删清单导致全部跳过”。
+        if self._vector_count() == 0 and self._md5_store_has_entries():
+            logger.warning("[加载知识库]向量库为空但MD5清单已有记录，判定清单失效，清空后重新入库")
+            open(get_abs_path(chroma_conf["md5_hex_store"]), "w", encoding = "utf-8").close()
+
         def check_md5_hex(md5_for_check: str):
             if not os.path.exists(get_abs_path(chroma_conf["md5_hex_store"])):
                 open(get_abs_path(chroma_conf["md5_hex_store"]), "w", encoding = "utf-8").close()
@@ -77,6 +103,11 @@ class VectorStoreService:
         for path in allowed_file_path:
             # 获取文件的md5
             md5_hex = get_file_md5_hex(path)
+
+            # MD5 计算失败时返回 None，写进清单会污染后续判断，直接跳过该文件
+            if not md5_hex:
+                logger.error(f"[加载知识库]{path}计算MD5失败，跳过该文件")
+                continue
 
             if check_md5_hex(md5_hex):
                 logger.info(f"[加载知识库]{path}已经存在知识库内，跳过")
