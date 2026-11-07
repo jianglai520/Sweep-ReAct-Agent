@@ -89,6 +89,21 @@ def get_current_month() -> str:
     return random.choice(month_arr)
 
 
+def _normalize_field(text: str) -> str:
+    """还原 CSV 字段中被字面量转义的换行。
+
+    ``records.csv`` 的多行字段是以 ``\\n`` 两个字符存储的，csv 模块不会做转义，
+    原样输出会让报告里出现一串 ``\\n`` 而不是换行。
+
+    Args:
+        text: CSV 单元格原始内容。
+
+    Returns:
+        换行已还原为真正换行符的文本。
+    """
+    return text.replace("\\n", "\n")
+
+
 def generate_external_data() -> None:
     """从 CSV 文件加载外部使用记录到全局缓存 ``external_data``。
 
@@ -134,10 +149,10 @@ def generate_external_data() -> None:
                 continue
 
             uid = arr[0].strip()
-            feature = arr[1].strip()
-            efficiency = arr[2].strip()
-            consumables = arr[3].strip()
-            comparison = arr[4].strip()
+            feature = _normalize_field(arr[1].strip())
+            efficiency = _normalize_field(arr[2].strip())
+            consumables = _normalize_field(arr[3].strip())
+            comparison = _normalize_field(arr[4].strip())
             time = arr[5].strip()
 
             external_data.setdefault(uid, {})[time] = {
@@ -173,6 +188,10 @@ def fetch_external_data(user_id: str, month: str) -> str:
         return ""
 
     return json.dumps(record, ensure_ascii=False)
+
+@tool(description = "无入参，无返回值，调用后触发中间件自动为报告生成的场景动态注入上下文信息，为后续提示词切换提供上下文信息")
+def fill_context_for_report():
+    return "fill_context_for_report已调用"
 
 
 # 测试
