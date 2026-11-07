@@ -1,2 +1,6 @@
-chat_model_name: deepseek-r1:1.5b
+# 聊天模型提供方：api = 通过 API Key 调用远端模型；ollama = 本机 Ollama
+chat_model_provider: api
+chat_model_name: deepseek-flash
+chat_model_base_url: https://api.deepseek.com/v1
+chat_model_api_key_env: DEEPSEEK_API_KEY
 embedding_model_name: qwen3-embedding:0.6b

@@ -6,7 +6,11 @@ YAML 配置加载工具模块。
 """
 
 import yaml
+from utils.env_loader import load_env_file
 from utils.path_tool import get_abs_path
+
+# 先加载工程根的 .env，保证后续读取配置时能拿到 API Key 等环境变量
+load_env_file()
 
 def load_yaml(config_path: str, encoding: str = "utf-8"):
     """读取并解析单个 YAML 文件，返回 Python对象"""
