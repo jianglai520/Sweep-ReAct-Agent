@@ -1,0 +1,14 @@
+# 密钥与本地配置，禁止提交
+.env
+
+# 虚拟环境
+.venv/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 运行产物（知识库可由 python -m rag.vector_store 重建，清单随之生成）
+logs/
+chroma_db/
+md5.txt
